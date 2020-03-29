@@ -3,14 +3,36 @@ import shutil
 import cv2
 from PIL import Image
 from lib.realsense import RealSense
+from ffmpeg
+
+# Not working -> non readable
+# def write_video(out_file, frames, fps=30, size=(640, 480)):
+#     out = cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
+#     for i in range(len(frames)):
+#         # writing to a image array
+#         out.write(frames[i])
+#     out.release()
 
 
-def write_video(frames, out_file, fps=30, size=(640, 480)):
-    out = cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
-    for i in range(len(frames)):
-        # writing to a image array
-        out.write(frames[i])
-    out.release()
+def write_video(fn, images, framerate=30, vcodec='libx264'):
+    if not isinstance(images, np.ndarray):
+        images = np.asarray(images)
+    n, height, width, channels = images.shape
+    process = (
+        ffmpeg
+        .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(width, height))
+        .output(fn, pix_fmt='yuv420p', vcodec=vcodec, r=framerate)
+        .overwrite_output()
+        .run_async(pipe_stdin=True)
+    )
+    for frame in images:
+        process.stdin.write(
+            frame
+            .astype(np.uint8)
+            .tobytes()
+        )
+    process.stdin.close()
+    process.wait()
 
 
 def save_jpgs():
@@ -41,9 +63,16 @@ def run(resolution):
     rs.close_stream()
 
     cwd = os.getcwd()
-    # write_video(frames, os.path.join(cwd, 'output.avi'), size=(resolution[1], resolution[1]))
 
-    save_jpgs()
+    # save frames
+    # save_jpgs()
+
+    # ffmpeg
+    write_video(os.path.join(cwd, 'output.mp4'), frames)
+    
+    # opencv
+    # write_video(os.path.join(cwd, 'output.mp4'), frames, size=(resolution[1], resolution[1]))
+    
 
 
 if __name__ == "__main__":
